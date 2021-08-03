@@ -1,13 +1,31 @@
 apply plugin: 'com.android.application'
 
+ext {
+    AppVersionCode = 100000
+    AppVersionName = "1.0.0"
+
+    release_path="../../../apk"
+
+}
+
 android {
     compileSdkVersion 29
+
+    signingConfigs {
+        config {
+            keyAlias "phill"
+            keyPassword "phill0626"
+            storeFile file('../../../../KeyStore/platform.keystore')
+            storePassword "phill0626"
+        }
+    }
+
     defaultConfig {
         applicationId "future_ds.usb_native"
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 1
-        versionName "1.0"
+        versionCode AppVersionCode
+        versionName AppVersionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -19,6 +37,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
+        }
+        debug{
+            signingConfig signingConfigs.config
         }
     }
     externalNativeBuild {
@@ -37,4 +59,28 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:25.3.1'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     testImplementation 'junit:junit:4.12'
+}
+
+
+task releaseDeploy {
+    finalizedBy(){
+        def name_prefix = "${rootProject.name}-${AppVersionName}"
+        def release_apk = "build/outputs/apk/release"
+
+        // APK 배포
+        task(deployApk, type: Copy) {
+            from "${release_apk}"
+            into "${release_path}"
+            rename('.*.apk', "${name_prefix}.apk")
+            include('**/*release.apk')
+        }
+    }
+}
+
+task releaseBuild(dependsOn: ['assembleRelease']) {
+}
+
+task release(dependsOn: ['clean', 'releaseBuild', 'releaseDeploy']) {
+    releaseBuild.mustRunAfter clean
+    releaseDeploy.mustRunAfter releaseBuild
 }
